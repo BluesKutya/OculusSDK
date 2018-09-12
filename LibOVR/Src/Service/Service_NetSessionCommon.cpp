@@ -5,16 +5,16 @@ Content     :   Server for service interface
 Created     :   June 12, 2014
 Authors     :   Kevin Jenkins, Chris Taylor
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,7 +30,8 @@ limitations under the License.
 namespace OVR { namespace Service {
 
 
-//// NetSessionCommon
+//-----------------------------------------------------------------------------
+// NetSessionCommon
 
 NetSessionCommon::NetSessionCommon() :
     Terminated(false)
@@ -57,14 +58,14 @@ NetSessionCommon::~NetSessionCommon()
         pRPC = NULL;
     }
 
-    Terminated = true;
+    Terminated.store(true, std::memory_order_relaxed);
 
     OVR_ASSERT(IsFinished());
 }
 
 void NetSessionCommon::onSystemDestroy()
 {
-    Terminated = true;
+    Terminated.store(true, std::memory_order_relaxed);
 
     Join();
 
@@ -73,193 +74,137 @@ void NetSessionCommon::onSystemDestroy()
 
 void NetSessionCommon::onThreadDestroy()
 {
-    Terminated = true;
+    Terminated.store(true, std::memory_order_relaxed);
     if (pSession)
     {
         pSession->Shutdown();
     }
 }
 
-void NetSessionCommon::SerializeHMDInfo(Net::BitStream *bitStream, HMDInfo* hmdInfo)
+template<typename T>
+static bool SerializeUInt32(bool write, Net::BitStream* bitStream, T& data)
 {
-    bitStream->Write(hmdInfo->ProductName);
-    bitStream->Write(hmdInfo->Manufacturer);
+    int32_t w = 0;
+    bool result = false;
 
-    int32_t w = hmdInfo->Version;
-    bitStream->Write(w);
+    if (write)
+    {
+        w = (int32_t)data;
+        result = bitStream->Serialize(write, w);
+    }
+    else
+    {
+        result = bitStream->Serialize(write, w);
+        data = (T)w;
+    }
 
-    w = hmdInfo->HmdType;
-    bitStream->Write(w);
-
-    w = hmdInfo->ResolutionInPixels.w;
-    bitStream->Write(w);
-
-    w = hmdInfo->ResolutionInPixels.h;
-    bitStream->Write(w);
-
-    w = hmdInfo->ShimInfo.DeviceNumber;
-    bitStream->Write(w);
-
-    w = hmdInfo->ShimInfo.NativeWidth;
-    bitStream->Write(w);
-
-    w = hmdInfo->ShimInfo.NativeHeight;
-    bitStream->Write(w);
-
-    w = hmdInfo->ShimInfo.Rotation;
-    bitStream->Write(w);
-
-    bitStream->Write(hmdInfo->ScreenSizeInMeters.w);
-    bitStream->Write(hmdInfo->ScreenSizeInMeters.h);
-    bitStream->Write(hmdInfo->ScreenGapSizeInMeters);
-    bitStream->Write(hmdInfo->CenterFromTopInMeters);
-    bitStream->Write(hmdInfo->LensSeparationInMeters);
-
-    w = hmdInfo->DesktopX;
-    bitStream->Write(w);
-
-    w = hmdInfo->DesktopY;
-    bitStream->Write(w);
-
-    w = hmdInfo->Shutter.Type;
-    bitStream->Write(w);
-
-    bitStream->Write(hmdInfo->Shutter.VsyncToNextVsync);
-    bitStream->Write(hmdInfo->Shutter.VsyncToFirstScanline);
-    bitStream->Write(hmdInfo->Shutter.FirstScanlineToLastScanline);
-    bitStream->Write(hmdInfo->Shutter.PixelSettleTime);
-    bitStream->Write(hmdInfo->Shutter.PixelPersistence);
-    bitStream->Write(hmdInfo->DisplayDeviceName);
-
-    w = hmdInfo->DisplayId;
-    bitStream->Write(w);
-
-    bitStream->Write(hmdInfo->PrintedSerial);
-
-    uint8_t b = hmdInfo->InCompatibilityMode ? 1 : 0;
-    bitStream->Write(b);
-
-    w = hmdInfo->VendorId;
-    bitStream->Write(w);
-
-    w = hmdInfo->ProductId;
-    bitStream->Write(w);
-
-    bitStream->Write(hmdInfo->CameraFrustumFarZInMeters);
-    bitStream->Write(hmdInfo->CameraFrustumHFovInRadians);
-    bitStream->Write(hmdInfo->CameraFrustumNearZInMeters);
-    bitStream->Write(hmdInfo->CameraFrustumVFovInRadians);
-
-    w = hmdInfo->FirmwareMajor;
-    bitStream->Write(w);
-
-    w = hmdInfo->FirmwareMinor;
-    bitStream->Write(w);
+    return result;
 }
 
-bool NetSessionCommon::DeserializeHMDInfo(Net::BitStream *bitStream, HMDInfo* hmdInfo)
+static bool SerializeBool(bool write, Net::BitStream* bitStream, bool& data)
 {
-    bitStream->Read(hmdInfo->ProductName);
-    bitStream->Read(hmdInfo->Manufacturer);
+    uint8_t x = 0;
+    bool result = false;
 
-    int32_t w = 0;
-    if (!bitStream->Read(w))
+    if (write)
     {
-        // This indicates that no HMD could be found
-        return false;
+        x = data ? 1 : 0;
+        result = bitStream->Serialize(write, x);
     }
-    hmdInfo->Version = w;
-
-    bitStream->Read(w);
-    hmdInfo->HmdType = (HmdTypeEnum)w;
-
-    bitStream->Read(w);
-    hmdInfo->ResolutionInPixels.w = w;
-
-    bitStream->Read(w);
-    hmdInfo->ResolutionInPixels.h = w;
-
-    bitStream->Read(w);
-    hmdInfo->ShimInfo.DeviceNumber = w;
-
-    bitStream->Read(w);
-    hmdInfo->ShimInfo.NativeWidth = w;
-
-    bitStream->Read(w);
-    hmdInfo->ShimInfo.NativeHeight = w;
-
-    bitStream->Read(w);
-    hmdInfo->ShimInfo.Rotation = w;
-
-    bitStream->Read(hmdInfo->ScreenSizeInMeters.w);
-    bitStream->Read(hmdInfo->ScreenSizeInMeters.h);
-    bitStream->Read(hmdInfo->ScreenGapSizeInMeters);
-    bitStream->Read(hmdInfo->CenterFromTopInMeters);
-    bitStream->Read(hmdInfo->LensSeparationInMeters);
-
-    bitStream->Read(w);
-    hmdInfo->DesktopX = w;
-
-    bitStream->Read(w);
-    hmdInfo->DesktopY = w;
-
-    bitStream->Read(w);
-    hmdInfo->Shutter.Type = (HmdShutterTypeEnum)w;
-
-    bitStream->Read(hmdInfo->Shutter.VsyncToNextVsync);
-    bitStream->Read(hmdInfo->Shutter.VsyncToFirstScanline);
-    bitStream->Read(hmdInfo->Shutter.FirstScanlineToLastScanline);
-    bitStream->Read(hmdInfo->Shutter.PixelSettleTime);
-    bitStream->Read(hmdInfo->Shutter.PixelPersistence);
-    bitStream->Read(hmdInfo->DisplayDeviceName);
-
-    bitStream->Read(w);
-    hmdInfo->DisplayId = w;
-
-    bitStream->Read(hmdInfo->PrintedSerial);
-
-    uint8_t b = 0;
-    bitStream->Read(b);
-    hmdInfo->InCompatibilityMode = (b != 0);
-
-    bitStream->Read(w);
-    hmdInfo->VendorId = w;
-
-    bitStream->Read(w);
-    hmdInfo->ProductId = w;
-
-    bitStream->Read(hmdInfo->CameraFrustumFarZInMeters);
-    bitStream->Read(hmdInfo->CameraFrustumHFovInRadians);
-    bitStream->Read(hmdInfo->CameraFrustumNearZInMeters);
-    bitStream->Read(hmdInfo->CameraFrustumVFovInRadians);
-
-    bitStream->Read(w);
-    hmdInfo->FirmwareMajor = w;
-
-    if (!bitStream->Read(w))
+    else
     {
-        OVR_ASSERT(false);
-        return false;
+        result = bitStream->Serialize(write, x);
+        data = (x != 0);
     }
-    hmdInfo->FirmwareMinor = w;
 
-    return true;
+    return result;
+}
+
+bool NetSessionCommon::SerializeHMDInfo(Net::BitStream *bitStream, HMDInfo* hmdInfo, bool write)
+{
+    bool result = false;
+
+    bitStream->Serialize(write, hmdInfo->ProductName);
+    bitStream->Serialize(write, hmdInfo->Manufacturer);
+
+    SerializeUInt32(write, bitStream, hmdInfo->Version);
+    SerializeUInt32(write, bitStream, hmdInfo->HmdType);
+    SerializeUInt32(write, bitStream, hmdInfo->ResolutionInPixels.w);
+    SerializeUInt32(write, bitStream, hmdInfo->ResolutionInPixels.h);
+    SerializeUInt32(write, bitStream, hmdInfo->ShimInfo.DeviceNumber);
+    SerializeUInt32(write, bitStream, hmdInfo->ShimInfo.NativeWidth);
+    SerializeUInt32(write, bitStream, hmdInfo->ShimInfo.NativeHeight);
+    SerializeUInt32(write, bitStream, hmdInfo->ShimInfo.Rotation);
+
+    bitStream->Serialize(write, hmdInfo->ScreenSizeInMeters.w);
+    bitStream->Serialize(write, hmdInfo->ScreenSizeInMeters.h);
+    bitStream->Serialize(write, hmdInfo->ScreenGapSizeInMeters);
+    bitStream->Serialize(write, hmdInfo->CenterFromTopInMeters);
+    bitStream->Serialize(write, hmdInfo->LensSeparationInMeters);
+
+    SerializeUInt32(write, bitStream, hmdInfo->DesktopX);
+    SerializeUInt32(write, bitStream, hmdInfo->DesktopY);
+    SerializeUInt32(write, bitStream, hmdInfo->Shutter.Type);
+
+    bitStream->Serialize(write, hmdInfo->Shutter.VsyncToNextVsync);
+    bitStream->Serialize(write, hmdInfo->Shutter.VsyncToFirstScanline);
+    bitStream->Serialize(write, hmdInfo->Shutter.FirstScanlineToLastScanline);
+    bitStream->Serialize(write, hmdInfo->Shutter.PixelSettleTime);
+    bitStream->Serialize(write, hmdInfo->Shutter.PixelPersistence);
+    bitStream->Serialize(write, hmdInfo->DisplayDeviceName);
+
+    SerializeUInt32(write, bitStream, hmdInfo->DisplayId);
+
+    bitStream->Serialize(write, hmdInfo->PrintedSerial);
+
+    SerializeBool(write, bitStream, hmdInfo->InCompatibilityMode);
+
+    SerializeUInt32(write, bitStream, hmdInfo->VendorId);
+    SerializeUInt32(write, bitStream, hmdInfo->ProductId);
+
+    bitStream->Serialize(write, hmdInfo->CameraFrustumFarZInMeters);
+    bitStream->Serialize(write, hmdInfo->CameraFrustumHFovInRadians);
+    bitStream->Serialize(write, hmdInfo->CameraFrustumNearZInMeters);
+    bitStream->Serialize(write, hmdInfo->CameraFrustumVFovInRadians);
+
+    SerializeUInt32(write, bitStream, hmdInfo->FirmwareMajor);
+    SerializeUInt32(write, bitStream, hmdInfo->FirmwareMinor);
+
+    bitStream->Serialize(write, hmdInfo->PelOffsetR.x);
+    bitStream->Serialize(write, hmdInfo->PelOffsetR.y);
+    bitStream->Serialize(write, hmdInfo->PelOffsetB.x);
+    result = bitStream->Serialize(write, hmdInfo->PelOffsetB.y);
+
+    // Important please read before modifying!
+    // ----------------------------------------------------
+    // Please add new serialized data to the end, here.
+    // Otherwise we will break backwards compatibility
+    // and e.g. 0.4.4 runtime will not work with 0.4.3 SDK.
+
+    // Note that whenever new fields are added here you
+    // should also update the minor version of the RPC
+    // protocol in OVR_Session.h so that clients fail at
+    // a version check instead of when this data is
+    // found to be truncated from the server.
+
+    // The result of the final serialize should be returned to the caller.
+    return result;
 }
 
 // Prefix key names with this to pass through to server
 static const char* BypassPrefix = "server:";
 
 static const char* KeyNames[][NetSessionCommon::ENumTypes] = {
-    /* EGetStringValue */ { "CameraSerial", "CameraUUID", 0 },
-    /* EGetBoolValue */ { "ReleaseDK2Sensors", "ReleaseLegacySensors", 0 },
-    /* EGetIntValue */ { 0 },
-    /* EGetNumberValue */{ "CenterPupilDepth", 0 },
-    /* EGetNumberValues */{ "NeckModelVector3f", 0 },
-    /* ESetStringValue */ { 0 },
-    /* ESetBoolValue */ { "ReleaseDK2Sensors", "ReleaseLegacySensors", 0 },
-    /* ESetIntValue */ { 0 },
-    /* ESetNumberValue */{ "CenterPupilDepth", 0 },
-    /* ESetNumberValues */{ "NeckModelVector3f", 0 }
+    /* EGetStringValue */  { "CameraSerial", "CameraUUID", 0 },
+    /* EGetBoolValue */    { "ReleaseDK2Sensors", "ReleaseLegacySensors", 0 },
+    /* EGetIntValue */     { 0 },
+    /* EGetNumberValue */  { "CenterPupilDepth", "LoggingMask", 0 },
+    /* EGetNumberValues */ { "NeckModelVector3f", 0 },
+    /* ESetStringValue */  { 0 },
+    /* ESetBoolValue */    { "ReleaseDK2Sensors", "ReleaseLegacySensors", 0 },
+    /* ESetIntValue */     { 0 },
+    /* ESetNumberValue */  { "CenterPupilDepth", "LoggingMask", 0 },
+    /* ESetNumberValues */ { "NeckModelVector3f", 0 },
 };
 
 bool IsInStringArray(const char* a[], const char* key)

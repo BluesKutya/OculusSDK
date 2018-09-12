@@ -5,16 +5,16 @@ Content     :   Win32-specific Display declarations
 Created     :   May 6, 2014
 Authors     :   Dean Beeler
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,53 +29,33 @@ limitations under the License.
 
 #include "OVR_Display.h"
 
+OVR_DISABLE_MSVC_WARNING(4351) // new behavior: elements of array will be default initialized
+
 namespace OVR { namespace Win32 {
 
-
-//-------------------------------------------------------------------------------------
-// DisplayDesc
-
-// Display information enumerable through Win32.
-// TBD: Should we just move this to public header, so it's a const member of Display?
-struct DisplayDesc
-{
-    HmdTypeEnum DeviceTypeGuess; // This is a guess about what type of HMD it is connected to
-	String      DisplayID;       // This is the device identifier string from MONITORINFO (for app usage)
-    String      ModelName;       // This is a "DK2" type string
-    String      EdidSerialNumber;
-    Sizei       LogicalResolutionInPixels;
-    Sizei       NativeResolutionInPixels;
-    Vector2i    DesktopDisplayOffset;
-};
-
-
-//-------------------------------------------------------------------------------------
-// DisplayEDID
-
-// Describes EDID information as reported from our display driver.
-struct DisplayEDID
-{
-	String MonitorName;
-	UINT16 ModelNumber;
-	String VendorName;
-	String SerialNumber;
-};
 
 class Win32DisplaySearchHandle : public DisplaySearchHandle
 {
 public:
     static const int ArraySize = 16;
 
-    Win32::DisplayDesc cachedDescriptorArray[ArraySize];
+    DisplayDesc        cachedDescriptorArray[ArraySize];
     bool			   extended;
     bool			   application;
     int				   extendedDisplayCount;
     int				   applicationDisplayCount;
     int				   displayCount;
 
-    Win32DisplaySearchHandle()
+    Win32DisplaySearchHandle() :
+        cachedDescriptorArray(),
+        extended(),
+        application(false),
+        extendedDisplayCount(0),
+        applicationDisplayCount(0),
+        displayCount(0)
     {
     }
+
 	virtual ~Win32DisplaySearchHandle()
     {
     }
@@ -88,30 +68,30 @@ public:
 class Win32DisplayGeneric : public Display
 {
 public:
-	Win32DisplayGeneric( const DisplayDesc& dd ) :
-		Display(dd.DeviceTypeGuess,
-				dd.DisplayID,
-				dd.ModelName,
-				dd.EdidSerialNumber,
-				dd.LogicalResolutionInPixels,
-				dd.NativeResolutionInPixels,
-				dd.DesktopDisplayOffset,
-				0,
-				0,
-				false)
+    Win32DisplayGeneric( const DisplayDesc& dd ) :
+        Display(dd.DeviceTypeGuess,
+                dd.DisplayID,
+                dd.ModelName,
+                dd.EdidSerialNumber,
+                dd.ResolutionInPixels,
+                dd.ResolutionInPixels,
+                dd.DesktopDisplayOffset,
+                0,
+                dd.Rotation,
+                false)
     {
-	}
+    }
 
-	virtual ~Win32DisplayGeneric()
-	{
-	}
+    virtual ~Win32DisplayGeneric()
+    {
+    }
 
-	// Generic displays are not capable of mirroring
-	virtual MirrorMode SetMirrorMode( MirrorMode newMode ) 
-	{ 
-		OVR_UNUSED( newMode ); 
-		return MirrorDisabled; 
-	} 
+    // Generic displays are not capable of mirroring
+    virtual MirrorMode SetMirrorMode( MirrorMode newMode ) 
+    { 
+        OVR_UNUSED( newMode ); 
+        return MirrorDisabled; 
+    }
 };
 
 
@@ -165,5 +145,9 @@ public:
 
 
 }} // namespace OVR::Win32
+
+
+OVR_RESTORE_MSVC_WARNING()
+
 
 #endif // OVR_Win32_Display_h

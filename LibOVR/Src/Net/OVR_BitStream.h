@@ -6,16 +6,16 @@ Content     :   A generic serialization toolkit for packing data to a binary str
 Created     :   June 10, 2014
 Authors     :   Kevin Jenkins
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,9 +29,13 @@ limitations under the License.
 #define OVR_Bitstream_h
 
 #include <math.h>
-#include "../Kernel/OVR_Types.h"
-#include "../Kernel/OVR_Std.h"
-#include "../Kernel/OVR_String.h"
+#include "Kernel/OVR_Types.h"
+#include "Kernel/OVR_Std.h"
+#include "Kernel/OVR_String.h"
+
+#if defined(OVR_CC_MSVC)
+#pragma warning(push)
+#endif
 
 namespace OVR { namespace Net {
 
@@ -75,6 +79,9 @@ public:
 public:
 	/// Resets the bitstream for reuse.
 	void Reset( void );
+
+    // Releases the current data and points the bitstream at the provided buffer
+    void WrapBuffer(unsigned char* data, const unsigned int lengthInBytes);
 
 	/// \brief Bidirectional serialize/deserialize any integral type to/from a bitstream.  
 	/// \details Undefine __BITSTREAM_NATIVE_END if you need endian swapping.
@@ -796,13 +803,11 @@ public:
 
 private:
 
-	BitStream( const BitStream &invalid) {
-		(void) invalid;
+	BitStream( const BitStream & /*invalid*/) : numberOfBitsUsed(0), numberOfBitsAllocated(0), readOffset(0),data(NULL), copyData(false) {
 		OVR_ASSERT(0);
 	}
 
-	BitStream& operator = ( const BitStream& invalid ) {
-		(void) invalid;
+	BitStream& operator = ( const BitStream& /*invalid*/ ) {
 		OVR_ASSERT(0);
 		static BitStream i;
 		return i;
@@ -1583,7 +1588,7 @@ bool BitStream::ReadBitsFromIntegerRange( templateType &value, const templateTyp
 template <class templateType>
 bool BitStream::ReadBitsFromIntegerRange( templateType &value, const templateType minimum, const templateType maximum, const int requiredBits, bool allowOutsideRange )
 {
-	OVR_ASSERT(maximum>=minimum);
+	OVR_ASSERT_AND_UNUSED(maximum>=minimum, maximum);
 	if (allowOutsideRange)
 	{
 		bool isOutsideRange;
@@ -1742,5 +1747,9 @@ BitStream& operator>>(BitStream& in, templateType& c)
 
 
 }} // OVR::Net
+
+#if defined(OVR_CC_MSVC)
+#pragma warning(pop)
+#endif
 
 #endif

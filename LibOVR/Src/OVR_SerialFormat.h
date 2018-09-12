@@ -5,16 +5,16 @@ Filename    :   OVR_SerialFormat.h
 Content     :   Serial Number format tools
 Created     :   June 12, 2014
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,6 +29,9 @@ limitations under the License.
 
 #include "Kernel/OVR_Types.h"
 #include "Kernel/OVR_String.h"
+
+#include "OVR_Version.h"
+
 
 namespace OVR {
 
@@ -117,10 +120,7 @@ public:
 };
 
 
-//#define SERIAL_FORMAT_UNIT_TEST
-#ifdef SERIAL_FORMAT_UNIT_TEST
-void TestSerialFormatStuff();
-#endif
+
 
 } // OVR
 

@@ -5,16 +5,16 @@ Content     :   Combines all of the rendering state associated with the HMD
 Created     :   February 2, 2014
 Authors     :   Michael Antonov
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,10 +27,10 @@ limitations under the License.
 #ifndef OVR_CAPI_HMDRenderState_h
 #define OVR_CAPI_HMDRenderState_h
 
-#include "../OVR_CAPI.h"
-#include "../Kernel/OVR_Math.h"
-#include "../Util/Util_Render_Stereo.h"
-#include "../Service/Service_NetSessionCommon.h"
+#include "OVR_CAPI.h"
+#include "Extras/OVR_Math.h"
+#include "Util/Util_Render_Stereo.h"
+#include "Service/Service_NetSessionCommon.h"
 
 namespace OVR { namespace CAPI {
 
@@ -52,7 +52,7 @@ struct HMDRenderState
     ovrEyeRenderDesc    CalcRenderDesc(ovrEyeType eyeType, const ovrFovPort& fov) const;
 
     HMDInfo                 OurHMDInfo;
-
+    ProfileRenderInfo       OurProfileRenderInfo;
     HmdRenderInfo           RenderInfo;
     DistortionRenderDesc    Distortion[2];
     ovrEyeRenderDesc        EyeRenderDesc[2]; 
@@ -64,8 +64,8 @@ struct HMDRenderState
     ovrPosef                EyeRenderPoses[2];
 
     // Capabilities passed to Configure.
-    unsigned                EnabledHmdCaps;
-    unsigned                DistortionCaps;
+    unsigned                EnabledHmdCaps;     // enum ovrHmdCaps
+    unsigned                DistortionCaps;     // enum ovrDistortionCaps
 };
 
 

@@ -5,16 +5,16 @@ Content     :   Shared functionality for the DK2 latency tester
 Created     :   July 8, 2014
 Authors     :   Volga Aksoy, Chris Taylor
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,7 +27,7 @@ limitations under the License.
 #ifndef OVR_Util_LatencyTest2_State_h
 #define OVR_Util_LatencyTest2_State_h
 
-#include "../Kernel/OVR_Lockless.h"
+#include "Kernel/OVR_Lockless.h"
 
 namespace OVR { namespace Util {
 
@@ -45,10 +45,11 @@ enum LatencyTester2Constants
 // FrameTimeRecord
 
 // Describes frame scan-out time used for latency testing.
-struct FrameTimeRecord
+struct OVR_ALIGNAS(8) FrameTimeRecord
 {
-    int    ReadbackIndex;
-    double TimeSeconds;
+    int32_t ReadbackIndex;
+    int32_t Pad;
+    double  TimeSeconds;
 
     // Utility functions to convert color to readBack indices and back.
     // The purpose of ReadbackIndex is to allow direct comparison by value.
@@ -63,14 +64,15 @@ struct FrameTimeRecord
 
 // FrameTimeRecordSet is a container holding multiple consecutive frame timing records
 // returned from the lock-less state. Used by FrameTimeManager. 
-struct FrameTimeRecordSet
+struct OVR_ALIGNAS(8) FrameTimeRecordSet
 {
     enum {
         RecordCount = 4,
         RecordMask  = RecordCount - 1
     };
     FrameTimeRecord Records[RecordCount];    
-    int             NextWriteIndex;
+    int32_t         NextWriteIndex;
+    int32_t         Pad4;
 
     FrameTimeRecordSet();
 
@@ -87,9 +89,6 @@ struct FrameTimeRecordSet
 
     bool IsAllZeroes() const;
 };
-
-typedef LocklessUpdater<FrameTimeRecordSet, FrameTimeRecordSet> LockessRecordUpdater;
-
 
 }} // namespace OVR::Util
 

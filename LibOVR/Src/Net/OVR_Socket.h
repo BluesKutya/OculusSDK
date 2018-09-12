@@ -6,16 +6,16 @@ Content     :   Socket common data shared between all platforms.
 Created     :   June 10, 2014
 Authors     :   Kevin Jenkins, Chris Taylor
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,18 +28,17 @@ limitations under the License.
 #ifndef OVR_Socket_h
 #define OVR_Socket_h
 
-#include "../Kernel/OVR_Types.h"
-#include "../Kernel/OVR_Timer.h"
-#include "../Kernel/OVR_Allocator.h"
-#include "../Kernel/OVR_RefCount.h"
-#include "../Kernel/OVR_String.h"
+#include "Kernel/OVR_Types.h"
+#include "Kernel/OVR_Timer.h"
+#include "Kernel/OVR_Allocator.h"
+#include "Kernel/OVR_RefCount.h"
+#include "Kernel/OVR_String.h"
 
 // OS-specific socket headers
 #if defined(OVR_OS_WIN32)
 #include <WinSock2.h>
 #include <WS2tcpip.h>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include "Kernel/OVR_Win32_IncludeWindows.h"
 #else
 # include <unistd.h>
 # include <sys/types.h>
@@ -72,7 +71,6 @@ static const int SOCKET_ERROR = -1;
 enum TransportType
 {
 	TransportType_None,          // No transport (useful placeholder for invalid states)
-	TransportType_Loopback,      // Loopback transport: Class talks to itself
 	TransportType_TCP,           // TCP/IPv4/v6
 	TransportType_UDP,           // UDP/IPv4/v6
 	TransportType_PacketizedTCP  // Packetized TCP: Message framing is automatic
@@ -147,6 +145,8 @@ protected:
 class SocketEvent_UDP
 {
 public:
+	virtual ~SocketEvent_UDP(){}
+
 	virtual void UDP_OnRecv(Socket* pSocket, uint8_t* pData,
 							uint32_t bytesRead, SockAddr* pSockAddr)
 	{
@@ -160,6 +160,8 @@ public:
 class SocketEvent_TCP
 {
 public:
+	virtual ~SocketEvent_TCP(){}
+
 	virtual void TCP_OnRecv     (Socket* pSocket,
                                  uint8_t* pData,
                                  int bytesRead)

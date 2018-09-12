@@ -6,16 +6,16 @@ Content     :   A network plugin that provides remote procedure call functionali
 Created     :   June 10, 2014
 Authors     :   Kevin Jenkins
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,12 +29,12 @@ limitations under the License.
 #define OVR_Net_RPC_h
 
 #include "OVR_NetworkPlugin.h"
-#include "../Kernel/OVR_Hash.h"
-#include "../Kernel/OVR_String.h"
+#include "Kernel/OVR_Hash.h"
+#include "Kernel/OVR_String.h"
 #include "OVR_BitStream.h"
-#include "../Kernel/OVR_Threads.h"
-#include "../Kernel/OVR_Delegates.h"
-#include "../Kernel//OVR_Observer.h"
+#include "Kernel/OVR_Threads.h"
+#include "Kernel/OVR_Delegates.h"
+#include "Kernel/OVR_Callbacks.h"
 
 namespace OVR { namespace Net { namespace Plugins {
 
@@ -44,7 +44,7 @@ typedef Delegate2<void, BitStream*, ReceivePayload*> RPCSlot;
 // typedef void ( *Slot ) ( OVR::Net::BitStream *userData, OVR::Net::ReceivePayload *pPayload );
 
 /// NetworkPlugin that maps strings to function pointers. Can invoke the functions using blocking calls with return values, or signal/slots. Networked parameters serialized with BitStream
-class RPC1 : public NetworkPlugin
+class RPC1 : public NetworkPlugin, public NewOverrideBase
 {
 public:
 	RPC1();
@@ -55,7 +55,7 @@ public:
 	/// \param[in] sharedIdentifier A string to identify the slot. Recommended to be the same as the name of the function.
 	/// \param[in] functionPtr Pointer to the function.
 	/// \param[in] callPriority Slots are called by order of the highest callPriority first. For slots with the same priority, they are called in the order they are registered
-	void RegisterSlot(OVR::String sharedIdentifier,  OVR::Observer<RPCSlot> *rpcSlotObserver);
+	void RegisterSlot(OVR::String sharedIdentifier,  CallbackListener<RPCSlot>* rpcSlotListener);
 
 	/// \brief Same as \a RegisterFunction, but is called with CallBlocking() instead of Call() and returns a value to the caller
 	bool RegisterBlockingFunction(OVR::String uniqueID, RPCDelegate blockingFunction);
@@ -88,7 +88,8 @@ protected:
     virtual void OnConnected(Connection* conn);
 
 	Hash< String, RPCDelegate, String::HashFunctor > registeredBlockingFunctions;
-	ObserverHash< RPCSlot > slotHash;
+
+	CallbackHash< RPCSlot > slotHash;
 
     // Synchronization for RPC caller
     Lock            singleRPCLock;
